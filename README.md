@@ -7,7 +7,7 @@
 Forked from sassman/srp6-rs
 
 with following Changes:
-- calculate `K` use `H(S)` instead of `interleave_H(S)`
+- calculate `K` use `H(S)` instead of `interleave_H(S)` (document from the standford website, not from the RFC)
 - calculate `M` with **no padding** `s` `A` `B` `K`
 
 > A safe implementation of the secure remote password authentication and key-exchange protocol (SRP version 6a).
