@@ -4,6 +4,12 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![codecov](https://codecov.io/gh/sassman/srp6-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/sassman/srp6-rs)
 
+Forked from sassman/srp6-rs
+
+with following Changes:
+- calculate `K` use `H(S)` instead of `interleave_H(S)`
+- calculate `M` with **no padding** `s` `A` `B` `K`
+
 > A safe implementation of the secure remote password authentication and key-exchange protocol (SRP version 6a).
 
 ## About SRP6

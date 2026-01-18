@@ -152,6 +152,13 @@ pub fn calculate_session_key_S_for_client<const N_BYTE_LEN: usize>(
     Ok(S)
 }
 
+#[allow(non_snake_case)]
+pub fn calculate_session_key_hash_K<const N_BYTE_LEN: usize>(
+    S: &SessionKey,
+) -> StrongSessionKey {
+    let K = HashFunc::new().chain(S.to_vec()).finalize();
+    StrongSessionKey::from_bytes_be(&K)
+}
 /// the hash of a session key `S` that is called `K`
 /// S: is the session key of a user
 /// K: is the hash of S, just not that straight
@@ -207,10 +214,10 @@ pub fn calculate_proof_M<const N_BYTE_LEN: usize, const SALT_LENGTH: usize>(
         HashFunc::new()
             .chain(xor_hash)
             .chain(username_hash)
-            .chain(s.to_array_pad_zero::<SALT_LENGTH>())
-            .chain(A.to_array_pad_zero::<N_BYTE_LEN>())
-            .chain(B.to_array_pad_zero::<N_BYTE_LEN>())
-            .chain(K.to_array_pad_zero::<STRONG_SESSION_KEY_LENGTH>())
+            .chain(s.to_vec())
+            .chain(A.to_vec())
+            .chain(B.to_vec())
+            .chain(K.to_vec())
             .finalize()
             .as_slice(),
     );

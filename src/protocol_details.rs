@@ -19,7 +19,7 @@ A,B  Public ephemeral values
 x    Private key                            (derived from p and s)
 v    Password verifier
 S    Session key
-K    Strong session key                     (SHA1 interleaved)
+K    Strong session key                     (H(S))
 M    Proof (calculated by the server)
 M1   Proof provided by the client
 ```
@@ -50,7 +50,7 @@ B = k*v + g^b % N
 A = <read from client>
 u = SHA1(PAD(A) | PAD(B))
 S = (A * v^u) ^ b % N
-K = SHA_Interleave(S)
+K = H(S)
 
 H(A | M | K)
 ```

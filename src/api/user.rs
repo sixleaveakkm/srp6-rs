@@ -60,7 +60,7 @@ pub(crate) fn calculate_proof_M_for_client<const KL: usize, const SL: usize>(
         &a,
         &x,
     )?;
-    let K = calculate_session_key_hash_interleave_K::<KL>(&S);
+    let K = calculate_session_key_hash_K::<KL>(&S);
     let M1 = calculate_proof_M::<KL, SL>(
         &handshake.N,
         &handshake.g,
