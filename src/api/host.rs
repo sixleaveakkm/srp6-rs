@@ -76,6 +76,9 @@ impl HandshakeProofVerifier {
         let M1 = &proof.M1;
 
         let S = &calculate_session_key_S_for_host::<N_BYTE_LEN>(N, A, B, b, v)?;
+        #[cfg(not(feature = "no-interleave"))]
+        let K = calculate_session_key_hash_interleave_K::<N_BYTE_LEN>(S);
+        #[cfg(feature = "no-interleave")]
         let K = calculate_session_key_hash_K::<N_BYTE_LEN>(S);
         let M = &calculate_proof_M::<N_BYTE_LEN, SALT_LENGTH>(N, g, I, s, A, B, &K);
 

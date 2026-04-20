@@ -6,9 +6,11 @@
 
 Forked from sassman/srp6-rs
 
-with following Changes:
-- calculate `K` use `H(S)` instead of `interleave_H(S)` (document from the standford website, not from the RFC)
-- calculate `M` with **no padding** `s` `A` `B` `K`
+This fork adds two opt-in cargo features for interop with peers that follow the Stanford SRP design page rather than RFC 2945:
+- `no-interleave` — computes `K = H(S)` instead of `SHA_Interleave(S)`
+- `no-padding` — drops zero-padding on `s | A | B | K` in the `M` proof hash
+
+Both default off, so the crate stays behavior-compatible with upstream unless you opt in.
 
 > A safe implementation of the secure remote password authentication and key-exchange protocol (SRP version 6a).
 
@@ -32,6 +34,8 @@ read more at [srp.stanford.edu](http://srp.stanford.edu) and in [RFC2945] that d
 - `default` - uses `hash-sha512` and keys >= 2048 bit
 - `dangerous` - uses `hash-sha1` and provides keys < 2048 bit, please do not use this in production code.
 - `wow` - uses `hash-sha1`, insecure keys and a uppercase of username and password for the hash, please do not use this in production code. This is used in an old World of Warcraft client.
+- `no-interleave` - compute `K = H(S)` instead of `SHA_Interleave(S)`. Needed to interop with peers that follow the Stanford design page rather than RFC 2945.
+- `no-padding` - drop zero-padding on `s | A | B | K` in the `M` proof hash. Needed to interop with the same class of peers.
 
 Those flags are only used for specific test scenarios and should not be used in production code.
 - `test-rfc-5054-appendix-b`

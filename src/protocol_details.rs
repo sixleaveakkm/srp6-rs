@@ -19,7 +19,7 @@ A,B  Public ephemeral values
 x    Private key                            (derived from p and s)
 v    Password verifier
 S    Session key
-K    Strong session key                     (H(S))
+K    Strong session key                     (SHA1 interleaved)
 M    Proof (calculated by the server)
 M1   Proof provided by the client
 ```
@@ -50,10 +50,15 @@ B = k*v + g^b % N
 A = <read from client>
 u = SHA1(PAD(A) | PAD(B))
 S = (A * v^u) ^ b % N
-K = H(S)
+K = SHA_Interleave(S)
 
 H(A | M | K)
 ```
+
+## Feature-gated variants
+
+When compiled with the `no-interleave` feature, `K = H(S)` (Stanford design-page variant) is used instead of `SHA_Interleave(S)`.
+When compiled with the `no-padding` feature, the `s | A | B | K` inputs to `M` are passed unpadded.
 
 ## Safeguards
 1. The user will abort if he receives one of

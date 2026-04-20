@@ -150,53 +150,52 @@ pub fn stored_proof_verifier_from_step_2(username: UsernameRef) -> HandshakeProo
 }
 
 pub fn alice_proof() -> HandshakeProof<{ Srp6_4096::KEY_LEN }, { Srp6_4096::SALT_LEN }> {
-    HandshakeProof {
-        A: PublicKey::from_hex_str_be(
-            "5F1B7060 47346324 30A8A030 18CD56FE 9F837360 52F4D079 D8625A58
-            3E490541 4282F002 C3CB2883 765A7FD8 8B5C37D9 7D74554C B0A580FA
-            77F834E7 3D89DB9D B7AF622C F2E232B5 D6E4FE96 E7C0754D 6D7B4376
-            36250E22 168FBCE8 098ABAD8 21CF0248 3031A312 622B5998 CE2CC179
-            1A07DA7A 0E34AFB0 922BA1B6 CB4AE38F 77F08627 077DC11B A495FC56
-            BC1E43DE A0F3360D 1FEE7299 C4753EF3 68B2D6AC 1EECBB90 42471CB6
-            18C22D1C 2EBCEA18 4054E485 4FBDC049 EBA62829 64222744 44A465BB
-            B797B99A BFAF96B0 653B26CD 65A3E7C7 6E24BB2A E9083546 384B3444
-            34A1FC79 3488D4CC A6453B87 F840A42D BFFE37C6 F62CD694 63274D87
-            EE4807A2 31EA65AA 326A2C3C 4B8EBC90 6255D274 A3B80C6B 126CB078
-            B4C9CB5E 50E24A4D B2805F5F B1CECB14 8D717910 0B2E24CA 0511565E
-            5BC68C7A FA1660C8 6F7C70E1 0BEC8012 393297F9 5882B8A4 16FCDD47
-            B3B42E65 EA6DFD74 0FCC09D6 FEA8970F 36227A9E 007CA4D2 1C71729D
-            7FB1797E 226694A6 99B03F11 2C80EAF8 C0DE37FC 9482C3DE 7104D3AC
-            88818D56 AC16A9B0 55B60CE9 CD7834AE 1A555C7D 90F06825 E5005A27
-            8CF005A0 CEFB7556 6C53B083 8EF09D2E AC8BAAE5 357EA99B 3D7432E8
-            6058852A C8E1B3B1 D20DFD42 3DFA1EB3 E2AFFC14 A9352871 D7F68439
-            8C9D1563 37266C6D BD496BC1 BC1978BC 7E9A6E8D 6D0A5CB7 812A7B4D
-            FDA0DC79 C48FFC12",
-        )
-        .unwrap(),
-        M1: Proof::from_hex_str_be(
-            "EA8614A8 EE5C4B79 938C4E50 A3031376 1069895C 3EE1B66E 7E35D679
-            F9258E74 3C530738 DBB5B3DF 221E73CE 1385B20E 2B85FD36 B90F73D4
-            AB809D95 E3678C12",
-        )
-        .unwrap(),
-    }
+    let (A, _K, M1) = alice_ephemeral_state();
+    HandshakeProof { A, M1 }
 }
 
 pub fn strong_proof_verifier_from_step_3() -> StrongProofVerifier<{ Srp6_4096::KEY_LEN }> {
-    let alice_proof = alice_proof();
+    let (A, K, M1) = alice_ephemeral_state();
+    StrongProofVerifier { A, K, M1 }
+}
 
-    StrongProofVerifier {
-        A: alice_proof.A,
-        K: SessionKey::from_hex_str_be(
-            "DC5923B7 43FC8512 8AEE0096 D5EB3756 E4FB7EB0 405CEC8A AB4D3AA7
-             5F7CDDA8 344D0132 FC87F10D 3495C867 E10898AE CBD6C343 5F2A3221
-             3228BF96 72FACBBD DD042649 C4C037DE F5FDB3E3 B55EA3FA 92BE9ED9
-             0F8B29A5 7308130F B541BA79 A286223F 70DCA470 EC7E00C3 3F958DDF
-             9C4AA12B 66A35E53 85840EBC 6B6BA448",
-        )
-        .unwrap(),
-        M1: alice_proof.M1,
-    }
+/// Derives Alice's public key `A`, strong session key `K`, and proof `M1` from a
+/// fixed ephemeral private key `a`, so the mock stays consistent across feature
+/// flag combinations (`no-interleave` changes `K`; `no-padding` changes `M1`).
+#[allow(non_snake_case)]
+fn alice_ephemeral_state() -> (PublicKey, StrongSessionKey, Proof) {
+    let handshake = handshake_from_the_server("alice");
+    let a = PrivateKey::from_hex_str_be(
+        "60975527 035CF2AD 1989806F 0407210B C81EDC04 E2762A56 AFD529DD
+         DA2D4393",
+    )
+    .unwrap();
+    let A = calculate_pubkey_A(&handshake.N, &handshake.g, &a);
+    let x = calculate_private_key_x("alice", "password123", &handshake.s);
+    let S = calculate_session_key_S_for_client::<{ Srp6_4096::KEY_LEN }>(
+        &handshake.N,
+        &handshake.k,
+        &handshake.g,
+        &handshake.B,
+        &A,
+        &a,
+        &x,
+    )
+    .unwrap();
+    #[cfg(not(feature = "no-interleave"))]
+    let K = calculate_session_key_hash_interleave_K::<{ Srp6_4096::KEY_LEN }>(&S);
+    #[cfg(feature = "no-interleave")]
+    let K = calculate_session_key_hash_K::<{ Srp6_4096::KEY_LEN }>(&S);
+    let M1 = calculate_proof_M::<{ Srp6_4096::KEY_LEN }, { Srp6_4096::SALT_LEN }>(
+        &handshake.N,
+        &handshake.g,
+        "alice",
+        &handshake.s,
+        &A,
+        &handshake.B,
+        &K,
+    );
+    (A, K, M1)
 }
 
 pub fn strong_proof_from_the_server() -> StrongProof {

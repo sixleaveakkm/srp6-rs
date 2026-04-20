@@ -41,4 +41,7 @@ hash-sha1 = ["dep:sha1"]
 dangerous = ["hash-sha1"]
 wow = ["dangerous"]
 
+no-interleave = []
+no-padding = []
+
 test-rfc-5054-appendix-b = ["hash-sha1"]

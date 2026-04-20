@@ -152,6 +152,8 @@ pub fn calculate_session_key_S_for_client<const N_BYTE_LEN: usize>(
     Ok(S)
 }
 
+/// plain `K = H(S)` variant used when the `no-interleave` feature is enabled
+/// (matches the Stanford SRP design page rather than RFC 2945's `SHA_Interleave`)
 #[allow(non_snake_case)]
 pub fn calculate_session_key_hash_K<const N_BYTE_LEN: usize>(
     S: &SessionKey,
@@ -210,19 +212,23 @@ pub fn calculate_proof_M<const N_BYTE_LEN: usize, const SALT_LENGTH: usize>(
     let xor_hash: Hash = calculate_hash_N_xor_g::<N_BYTE_LEN>(N, g);
     let username_hash = HashFunc::new().chain(I.as_bytes()).finalize();
 
-    let M = Proof::from_bytes_be(
-        HashFunc::new()
-            .chain(xor_hash)
-            .chain(username_hash)
-            .chain(s.to_vec())
-            .chain(A.to_vec())
-            .chain(B.to_vec())
-            .chain(K.to_vec())
-            .finalize()
-            .as_slice(),
-    );
+    let hasher = HashFunc::new().chain(xor_hash).chain(username_hash);
 
-    M
+    #[cfg(not(feature = "no-padding"))]
+    let hasher = hasher
+        .chain(s.to_array_pad_zero::<SALT_LENGTH>())
+        .chain(A.to_array_pad_zero::<N_BYTE_LEN>())
+        .chain(B.to_array_pad_zero::<N_BYTE_LEN>())
+        .chain(K.to_array_pad_zero::<STRONG_SESSION_KEY_LENGTH>());
+
+    #[cfg(feature = "no-padding")]
+    let hasher = hasher
+        .chain(s.to_vec())
+        .chain(A.to_vec())
+        .chain(B.to_vec())
+        .chain(K.to_vec());
+
+    Proof::from_bytes_be(hasher.finalize().as_slice())
 }
 
 /// todo(verify): check if padding is needed or not
